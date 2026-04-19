@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+# PEP 7 style for CPython extension modules
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 79
+BreakBeforeBraces: Linux
+AlwaysBreakAfterReturnType: TopLevelDefinitions
+AllowShortFunctionsOnASingleLine: None
+UseTab: Never
