@@ -1,7 +1,6 @@
 project(
     'pycxxfilt',
     'c', 'cpp',
-    version: '0.1.dev1',
     meson_version: '>=1.6.0',
     default_options: [
         'cpp_std=c++20',

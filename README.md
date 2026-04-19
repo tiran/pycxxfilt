@@ -1,5 +1,9 @@
 # pycxxfilt
 
+[![Version](https://img.shields.io/pypi/v/pycxxfilt.svg?maxAge=86400)](https://pypi.org/project/pycxxfilt/)
+[![Supported Versions](https://img.shields.io/pypi/pyversions/pycxxfilt.svg)](https://pypi.org/project/pycxxfilt/)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/tiran/pycxxfilt/badge)](https://scorecard.dev/viewer/?uri=github.com/tiran/pycxxfilt)
+
 Demangle C++ symbols using LLVM's IA-64 C++ ABI demangler.
 
 `pycxxfilt` is a Python C extension that wraps the C++ name demangler
