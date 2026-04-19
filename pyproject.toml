@@ -53,6 +53,7 @@ test-command = "python -m pytest {project}/tests/ -q --ignore={project}/tests/te
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64", "aarch64", "ppc64le", "s390x"]
+skip = ["*-musllinux_*_ppc64le", "*-musllinux_*_s390x"]
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
