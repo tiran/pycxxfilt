@@ -2,6 +2,15 @@ project(
     'pycxxfilt',
     'c', 'cpp',
     meson_version: '>=1.6.0',
+    # Derive the version from the latest git tag via vcs-versioning. It falls
+    # back to the sdist's PKG-INFO when building outside a git checkout.
+    # Use 'python' (not 'python3'): meson-python's native file defines it as
+    # the build interpreter that has the versioning deps installed, whereas
+    # 'python3' would be resolved from PATH and miss them (e.g. on Windows).
+    version: run_command(
+        'python', '-m', 'vcs_versioning',
+        check: true,
+    ).stdout().strip(),
     default_options: [
         'cpp_std=c++20',
         'b_ndebug=true',

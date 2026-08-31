@@ -1,10 +1,12 @@
 [build-system]
-requires = ["meson-python>=0.17", "meson>=1.6"]
+# see https://github.com/pypa/setuptools-scm/issues/1507
+# need setuptools-scm as well to read version from sdist PKG-INFO
+requires = ["meson-python>=0.17", "meson>=1.6", "vcs-versioning", "setuptools-scm>=8"]
 build-backend = "mesonpy"
 
 [project]
 name = "pycxxfilt"
-version = "0.2.0"
+dynamic = ["version"]
 description = "Demangle C++ symbols using LLVM's C++ ABI demangler"
 requires-python = ">=3.11"
 authors = [{name = "Christian Heimes", email = "christian@python.org"}]
