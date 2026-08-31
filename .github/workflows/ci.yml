@@ -73,6 +73,9 @@ jobs:
           allow-prereleases: true
       - name: Build and install
         run: uv pip install --system ".[test]"
+      - name: ccache stats
+        if: always()
+        run: ccache -s
       - name: Run tests
         run: python -m pytest tests/ -q
 
@@ -102,6 +105,9 @@ jobs:
           allow-prereleases: true
       - name: Build and install
         run: uv pip install --system ".[test]"
+      - name: ccache stats
+        if: always()
+        run: ccache -s
       - name: Run tests
         run: python -m pytest tests/ -q
 
@@ -133,6 +139,9 @@ jobs:
             CCACHE_DIR=/host${{ github.workspace }}/.ccache
             CCACHE_NOHASHDIR=1
             CCACHE_COMPILERCHECK=content
+      - name: ccache stats
+        if: always()
+        run: CCACHE_DIR=${{ github.workspace }}/.ccache ccache -s
 
   test-macos:
     runs-on: macos-latest
@@ -159,6 +168,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Build and install
         run: uv pip install --system ".[test]"
+      - name: ccache stats
+        if: always()
+        run: ccache -s
       - name: Run tests
         run: python -m pytest tests/ -q
 
