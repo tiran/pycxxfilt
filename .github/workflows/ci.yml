@@ -71,10 +71,13 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
+      - name: Install ccache
+        run: sudo apt-get install -y ccache
       - name: Build and install
         run: uv pip install --system ".[test]"
       - name: ccache stats
         if: always()
+        continue-on-error: true
         run: ccache -s
       - name: Run tests
         run: python -m pytest tests/ -q
@@ -103,10 +106,13 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
+      - name: Install ccache
+        run: sudo apt-get install -y ccache
       - name: Build and install
         run: uv pip install --system ".[test]"
       - name: ccache stats
         if: always()
+        continue-on-error: true
         run: ccache -s
       - name: Run tests
         run: python -m pytest tests/ -q
@@ -140,8 +146,12 @@ jobs:
             CCACHE_NOHASHDIR=1
             CCACHE_COMPILERCHECK=content
       - name: ccache stats
+        # ccache ran inside the emulated container; read its host-mounted dir.
         if: always()
-        run: CCACHE_DIR=${{ github.workspace }}/.ccache ccache -s
+        continue-on-error: true
+        run: |
+          sudo apt-get install -y ccache
+          CCACHE_DIR=${{ github.workspace }}/.ccache ccache -s
 
   test-macos:
     runs-on: macos-latest
@@ -166,10 +176,13 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install ccache
+        run: brew install ccache
       - name: Build and install
         run: uv pip install --system ".[test]"
       - name: ccache stats
         if: always()
+        continue-on-error: true
         run: ccache -s
       - name: Run tests
         run: python -m pytest tests/ -q

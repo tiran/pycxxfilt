@@ -90,8 +90,12 @@ jobs:
             CCACHE_NOHASHDIR=1
             CCACHE_COMPILERCHECK=content
       - name: ccache stats
+        # ccache ran inside the build container; read its host-mounted dir.
         if: always()
-        run: CCACHE_DIR=${{ github.workspace }}/.ccache ccache -s
+        continue-on-error: true
+        run: |
+          sudo apt-get install -y ccache
+          CCACHE_DIR=${{ github.workspace }}/.ccache ccache -s
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: wheels-linux-${{ matrix.arch }}
@@ -122,6 +126,9 @@ jobs:
           path: ${{ github.workspace }}/.ccache
           key: ccache-macos-${{ matrix.arch }}-${{ github.run_id }}
           restore-keys: ccache-macos-${{ matrix.arch }}-
+      - name: Install ccache
+        # macOS wheels build natively on the host; meson auto-detects ccache.
+        run: brew install ccache
       - uses: pypa/cibuildwheel@1828c10ab37f080699c7b81cea34097c684a7074  # v4.2.0
         with:
           package-dir: ${{ steps.sdist.outputs.path }}
@@ -133,6 +140,7 @@ jobs:
             CCACHE_COMPILERCHECK=content
       - name: ccache stats
         if: always()
+        continue-on-error: true
         run: CCACHE_DIR=${{ github.workspace }}/.ccache ccache -s
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
