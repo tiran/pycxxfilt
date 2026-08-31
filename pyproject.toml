@@ -46,10 +46,23 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "ANN"]
 "tests/*" = ["ANN001", "ANN201"]
 
 [tool.cibuildwheel]
-# abi3 wheel for stable ABI
-build = ["cp311-*"]
+# Wheel matrix:
+#   cp311-*  -> one abi3 wheel, covers every GIL build 3.11+.
+#   cp314t-* -> version-specific free-threaded wheel; the free-threaded build
+#               has no stable ABI before 3.15, so it cannot be abi3.
+# TODO(abi3t): add "cp315t-*" for a cp315-abi3.abi3t wheel once meson-python
+# ships PEP 803 support (see _cxxfilt.c).
+build = ["cp311-*", "cp314t-*"]
 test-requires = "pytest"
 test-command = "python -m pytest {project}/tests/ -q --ignore={project}/tests/test_demangle.py"
+
+[[tool.cibuildwheel.overrides]]
+# The build defaults to version-specific extensions (see meson.build). Opt the
+# shipped stable-ABI wheel back in: cp311 builds on Python 3.11, which still has
+# the plain ".abi3.so" suffix, so it produces the cp311-abi3 wheel. cp314t (and
+# any other build) stays version-specific and needs no override.
+select = "cp311-*"
+config-settings = { setup-args = "-Dpython.allow_limited_api=true" }
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64", "aarch64", "ppc64le", "s390x"]
@@ -60,6 +73,9 @@ archs = ["x86_64", "arm64"]
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64"]
+
+[tool.meson-python]
+limited-api = true
 
 [tool.ty.environment]
 python-version = "3.11"

@@ -5,6 +5,12 @@ project(
     default_options: [
         'cpp_std=c++20',
         'b_ndebug=true',
+        # Build version-specific extensions by default so plain source builds work
+        # on every interpreter, including free-threaded ones (limited API is
+        # unsupported there) and CPython 3.15+ (meson-python 0.20 chokes on its new
+        # platform-tagged abi3 suffix). The distributed abi3 wheel opts back in with
+        # -Dpython.allow_limited_api=true (see cibuildwheel cp311 override).
+        'python.allow_limited_api=false',
     ],
 )
 
