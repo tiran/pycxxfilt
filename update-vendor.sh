@@ -12,7 +12,7 @@
 # The shim headers (abort_message.h, __cxxabi_config.h) are NOT overwritten.
 set -euo pipefail
 
-DEFAULT_TAG="llvmorg-22.1.3"
+DEFAULT_TAG="llvmorg-23.1.0"
 TAG="${1:-$DEFAULT_TAG}"
 BASE="https://raw.githubusercontent.com/llvm/llvm-project/${TAG}"
 
