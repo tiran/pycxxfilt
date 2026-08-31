@@ -103,7 +103,34 @@ module_methods[] = {
     {"demangle", pycxxfilt_demangle, METH_O, demangle_doc},
     {NULL, NULL, 0, NULL}
 };
+// clang-format on
 
+#define MODULE_DOC "C++ name demangling using LLVM's IA-64 C++ ABI demangler."
+
+#ifdef Py_TARGET_ABI3T
+// PEP 803 abi3t (free-threaded stable ABI, 3.15+): PyObject is opaque, so
+// export the module from slots via the PEP 793 PyModExport hook instead of a
+// statically allocated PyModuleDef.
+// clang-format off
+static PyModuleDef_Slot
+module_slots[] = {
+    {Py_mod_name, (void *)"_cxxfilt"},
+    {Py_mod_doc, (void *)MODULE_DOC},
+    {Py_mod_methods, (void *)module_methods},
+    {Py_mod_gil, Py_MOD_GIL_NOT_USED},
+    {0, NULL}
+};
+// clang-format on
+
+PyMODEXPORT_FUNC
+PyModExport__cxxfilt(void)
+{
+    return module_slots;
+}
+
+#else
+// --- Traditional path: abi3 (<= 3.14) and full (free-threaded) builds ---
+// clang-format off
 static PyModuleDef_Slot
 module_slots[] = {
 #ifdef Py_GIL_DISABLED
@@ -116,7 +143,7 @@ static struct PyModuleDef
 moduledef = {
     PyModuleDef_HEAD_INIT,
     "_cxxfilt",                                          /* m_name */
-    "C++ name demangling using LLVM's IA-64 C++ ABI demangler.", /* m_doc */
+    MODULE_DOC,                                          /* m_doc */
     0,                                                   /* m_size */
     module_methods,                                      /* m_methods */
     module_slots,                                        /* m_slots */
@@ -128,3 +155,4 @@ PyInit__cxxfilt(void)
 {
     return PyModuleDef_Init(&moduledef);
 }
+#endif
