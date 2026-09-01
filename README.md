@@ -53,6 +53,33 @@ not_mangled
 
 Symbols that are not valid mangled names are printed as-is.
 
+## Supported standards
+
+The demangler decodes any symbol produced by a conforming
+[Itanium C++ ABI](https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling)
+compiler (GCC, Clang). Coverage tracks the bundled LLVM version and currently
+includes:
+
+| Standard | Covered constructs |
+|---|---|
+| C++98/03 | namespaces, templates, operator overloads, ctors/dtors, vtables/RTTI, dynamic exception specs |
+| C++11 | lambdas, variadic templates, rvalue references, `decltype`, user-defined literals, `noexcept` |
+| C++14 | `decltype(auto)`, variable and generic-lambda templates |
+| C++17 | fold expressions, structured bindings, `noexcept` in the type system |
+| C++20 | concepts / `requires`, modules, coroutines, `char8_t`, `<=>` |
+| C++23 | explicit object parameter ("deducing this") |
+| C++26 | pack indexing (`T...[N]`) |
+
+Beyond C++, it also handles C23 `_BitInt(N)` and extended floating-point types
+(`_Float16`, `__float128`), Objective-C++ protocol qualifiers, GNU/Clang vector
+types, ABI tags (`[abi:...]`), and GCC symbol suffixes (`.cold`, `.clone`).
+
+## Stability
+
+The public API is `pycxxfilt.demangle()` and `pycxxfilt.LLVM_VERSION`. From
+1.0 onward it follows [semantic versioning](https://semver.org/): no breaking
+changes to these without a major version bump.
+
 ## Comparison with cxxfilt
 
 The [cxxfilt](https://pypi.org/project/cxxfilt/) package uses `ctypes` to
