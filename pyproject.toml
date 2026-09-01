@@ -15,7 +15,7 @@ license-files = ["LICENSE*"]
 readme = "README.md"
 keywords = ["demangle", "C++", "LLVM"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Operating System :: MacOS",
     "Operating System :: Microsoft :: Windows",
@@ -26,6 +26,8 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Programming Language :: Python :: Free Threading :: 3 - Stable",
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Software Development :: Libraries",
 ]
@@ -34,6 +36,7 @@ classifiers = [
 Homepage = "https://github.com/tiran/pycxxfilt"
 Source = "https://github.com/tiran/pycxxfilt"
 Issues = "https://github.com/tiran/pycxxfilt/issues"
+Changelog = "https://github.com/tiran/pycxxfilt/releases"
 
 [project.optional-dependencies]
 test = ["pytest"]
