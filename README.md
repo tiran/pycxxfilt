@@ -13,6 +13,8 @@ which is the standard used by GCC (3.0+), Clang (1.0+), and other
 compilers on most platforms. The demangler source is shipped directly,
 so no external C++ libraries are required at build time or runtime.
 
+The bundled demangler is from LLVM release `23.1.0`.
+
 ## Installation
 
 ```console

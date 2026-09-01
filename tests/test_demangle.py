@@ -2,8 +2,8 @@
 """Tests for pycxxfilt.demangle().
 
 The bulk of the test cases come from LLVM's DemangleTestCases.inc
-(libcxxabi/test/DemangleTestCases.inc, tag llvmorg-22.1.3) which
-contains ~30 000 mangled/demangled pairs.
+(libcxxabi/test/DemangleTestCases.inc; see vendor/LLVM_TAG for the
+release) which contains ~30 000 mangled/demangled pairs.
 """
 
 from __future__ import annotations

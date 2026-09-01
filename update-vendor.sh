@@ -41,4 +41,11 @@ curl -fsSL -o "${SCRIPT_DIR}/LICENSE.llvm" \
 # Record which tag was used
 echo "${TAG}" > "${VENDOR_DIR}/LLVM_TAG"
 
-echo "Done.  Vendored files updated to ${TAG}."
+# Update the README version to match. The extension gets LLVM_VERSION from
+# vendor/LLVM_TAG at build time, so nothing to update there.
+LLVM_VERSION="${TAG#llvmorg-}"
+
+sed -i -E "s/(LLVM release \`)[^\`]*(\`)/\1${LLVM_VERSION}\2/" \
+    "${SCRIPT_DIR}/README.md"
+
+echo "Done.  Vendored files updated to ${TAG} (version ${LLVM_VERSION})."

@@ -3,7 +3,8 @@
 
 Handles the name mangling scheme used by GCC (3.0+), Clang (1.0+), and
 other compilers based on the Itanium C++ ABI.  The demangler is
-extracted from LLVM's libcxxabi (release tag: llvmorg-22.1.3).
+extracted from LLVM's libcxxabi; the bundled version is available as
+``pycxxfilt.LLVM_VERSION``.
 
 Example::
 
@@ -18,6 +19,6 @@ Example::
     ValueError: invalid mangled name: _Zinvalid
 """
 
-from pycxxfilt._cxxfilt import demangle
+from pycxxfilt._cxxfilt import LLVM_VERSION, demangle
 
-__all__ = ["demangle"]
+__all__ = ["LLVM_VERSION", "demangle"]
