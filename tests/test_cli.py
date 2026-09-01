@@ -3,12 +3,22 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 
 import pytest
 
+import pycxxfilt
 from pycxxfilt.__main__ import main
+
+
+def test_llvm_version() -> None:
+    assert isinstance(pycxxfilt.LLVM_VERSION, str)
+    assert re.fullmatch(r"\d+\.\d+\.\d+", pycxxfilt.LLVM_VERSION), (
+        pycxxfilt.LLVM_VERSION
+    )
+
 
 # ---------------------------------------------------------------------------
 # Tests using main() directly

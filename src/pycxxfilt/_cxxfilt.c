@@ -107,6 +107,18 @@ module_methods[] = {
 
 #define MODULE_DOC "C++ name demangling using LLVM's IA-64 C++ ABI demangler."
 
+// Populate module attributes shared by every build variant.
+static int
+module_exec(PyObject *module)
+{
+    // PYCXXFILT_LLVM_VERSION is a compile-time define from the meson build.
+    if (PyModule_AddStringConstant(module, "LLVM_VERSION",
+                                   PYCXXFILT_LLVM_VERSION) < 0) {
+        return -1;
+    }
+    return 0;
+}
+
 #ifdef Py_TARGET_ABI3T
 // PEP 803 abi3t (free-threaded stable ABI, 3.15+): PyObject is opaque, so
 // export the module from slots via the PEP 793 PyModExport hook instead of a
@@ -117,6 +129,7 @@ module_slots[] = {
     {Py_mod_name, (void *)"_cxxfilt"},
     {Py_mod_doc, (void *)MODULE_DOC},
     {Py_mod_methods, (void *)module_methods},
+    {Py_mod_exec, (void *)module_exec},
     {Py_mod_gil, Py_MOD_GIL_NOT_USED},
     {0, NULL}
 };
@@ -133,6 +146,7 @@ PyModExport__cxxfilt(void)
 // clang-format off
 static PyModuleDef_Slot
 module_slots[] = {
+    {Py_mod_exec, (void *)module_exec},
 #ifdef Py_GIL_DISABLED
     {Py_mod_gil, Py_MOD_GIL_NOT_USED},
 #endif
