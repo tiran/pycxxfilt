@@ -1,7 +1,5 @@
 [build-system]
-# see https://github.com/pypa/setuptools-scm/issues/1507
-# need setuptools-scm as well to read version from sdist PKG-INFO
-requires = ["meson-python>=0.17", "meson>=1.6", "vcs-versioning", "setuptools-scm>=8"]
+requires = ["meson-python>=0.17", "meson>=1.6", "vcs-versioning>=2.3.2"]
 build-backend = "mesonpy"
 
 [project]
