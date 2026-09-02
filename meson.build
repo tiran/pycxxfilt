@@ -8,7 +8,7 @@ project(
     # the build interpreter that has the versioning deps installed, whereas
     # 'python3' would be resolved from PATH and miss them (e.g. on Windows).
     version: run_command(
-        'python', '-m', 'vcs_versioning',
+        'python3', '-m', 'vcs_versioning',
         check: true,
     ).stdout().strip(),
     default_options: [
