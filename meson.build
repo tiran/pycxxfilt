@@ -4,11 +4,10 @@ project(
     meson_version: '>=1.6.0',
     # Derive the version from the latest git tag via vcs-versioning. It falls
     # back to the sdist's PKG-INFO when building outside a git checkout.
-    # Use 'python' (not 'python3'): meson-python's native file defines it as
-    # the build interpreter that has the versioning deps installed, whereas
-    # 'python3' would be resolved from PATH and miss them (e.g. on Windows).
+    # find_program resolves meson-python's native-file 'python' (the build
+    # interpreter with the versioning deps) ahead of a bare PATH 'python3'.
     version: run_command(
-        'python3', '-m', 'vcs_versioning',
+        find_program('python3', 'python', version: '>= 3.11'), '-m', 'vcs_versioning',
         check: true,
     ).stdout().strip(),
     default_options: [
