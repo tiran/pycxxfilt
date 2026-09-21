@@ -27,36 +27,41 @@ tox run -e py314        # run tests with a specific Python version
 
 ## Vendored LLVM sources
 
-The Itanium demangler is vendored from LLVM's libcxxabi. The exact release
-tag is recorded in `vendor/LLVM_TAG` and exposed at runtime as
-`pycxxfilt.LLVM_VERSION`. The following files are copied from the LLVM source
-tree:
+All three demanglers (Itanium, MSVC, Rust) are vendored from LLVM's standalone
+`LLVMDemangle` component. The exact release tag is recorded in `vendor/LLVM_TAG`
+and exposed at runtime as `pycxxfilt.LLVM_VERSION`. The following files are
+copied verbatim from the LLVM source tree:
 
 | Local path | LLVM source |
 |---|---|
-| `vendor/cxa_demangle.cpp` | `libcxxabi/src/cxa_demangle.cpp` |
-| `vendor/demangle/DemangleConfig.h` | `libcxxabi/src/demangle/DemangleConfig.h` |
-| `vendor/demangle/ItaniumDemangle.h` | `libcxxabi/src/demangle/ItaniumDemangle.h` |
-| `vendor/demangle/ItaniumNodes.def` | `libcxxabi/src/demangle/ItaniumNodes.def` |
-| `vendor/demangle/StringViewExtras.h` | `libcxxabi/src/demangle/StringViewExtras.h` |
-| `vendor/demangle/Utility.h` | `libcxxabi/src/demangle/Utility.h` |
-| `vendor/demangle/README.txt` | `libcxxabi/src/demangle/README.txt` |
-| `vendor/DemangleTestCases.inc` | `libcxxabi/test/DemangleTestCases.inc` |
+| `vendor/llvm/lib/Demangle/ItaniumDemangle.cpp` | `llvm/lib/Demangle/ItaniumDemangle.cpp` |
+| `vendor/llvm/lib/Demangle/MicrosoftDemangle.cpp` | `llvm/lib/Demangle/MicrosoftDemangle.cpp` |
+| `vendor/llvm/lib/Demangle/MicrosoftDemangleNodes.cpp` | `llvm/lib/Demangle/MicrosoftDemangleNodes.cpp` |
+| `vendor/llvm/lib/Demangle/RustDemangle.cpp` | `llvm/lib/Demangle/RustDemangle.cpp` |
+| `vendor/llvm/include/llvm/Demangle/Demangle.h` | `llvm/include/llvm/Demangle/Demangle.h` |
+| `vendor/llvm/include/llvm/Demangle/DemangleConfig.h` | `llvm/include/llvm/Demangle/DemangleConfig.h` |
+| `vendor/llvm/include/llvm/Demangle/ItaniumDemangle.h` | `llvm/include/llvm/Demangle/ItaniumDemangle.h` |
+| `vendor/llvm/include/llvm/Demangle/ItaniumNodes.def` | `llvm/include/llvm/Demangle/ItaniumNodes.def` |
+| `vendor/llvm/include/llvm/Demangle/MicrosoftDemangle.h` | `llvm/include/llvm/Demangle/MicrosoftDemangle.h` |
+| `vendor/llvm/include/llvm/Demangle/MicrosoftDemangleNodes.h` | `llvm/include/llvm/Demangle/MicrosoftDemangleNodes.h` |
+| `vendor/llvm/include/llvm/Demangle/StringViewExtras.h` | `llvm/include/llvm/Demangle/StringViewExtras.h` |
+| `vendor/llvm/include/llvm/Demangle/Utility.h` | `llvm/include/llvm/Demangle/Utility.h` |
+| `vendor/test/DemangleTestCases.inc` | `libcxxabi/test/DemangleTestCases.inc` |
+| `vendor/test/ms-*.test`, `vendor/test/rust.test` | `llvm/test/Demangle/*.test` |
 | `LICENSE.llvm` | `llvm/LICENSE.TXT` |
 
 The vendored sources are copied verbatim -- the update script does not patch
-them. Symbol isolation instead comes from the demangler's own anonymous
-namespace (`DEMANGLE_NAMESPACE_BEGIN` in `vendor/demangle/DemangleConfig.h`)
-combined with `gnu_symbol_visibility: 'hidden'` in the meson build, so none of
-the demangler symbols are exported from the extension.
+them. Symbol isolation comes from leaving `DEMANGLE_ABI` empty (see the shim
+below) combined with `gnu_symbol_visibility: 'hidden'` in the meson build, so
+none of the demangler symbols are exported from the extension.
 
-Two **shim headers** provide the libcxxabi-internal symbols that the
-original code depends on:
+One **shim header** is maintained by hand (not downloaded by the update script):
 
-- `vendor/abort_message.h` -- replaces `libcxxabi/src/abort_message.h`
-- `vendor/__cxxabi_config.h` -- replaces `libcxxabi/include/__cxxabi_config.h`
+- `vendor/llvm/include/llvm/Config/llvm-config.h` -- LLVM's `DemangleConfig.h`
+  includes it only to learn whether `LLVM_ENABLE_LLVM_EXPORT_ANNOTATIONS` is
+  defined; leaving it undefined makes `DEMANGLE_ABI` expand to nothing.
 
-These shim files must be maintained manually if the upstream API changes.
+This shim must be maintained manually if the upstream expectations change.
 
 ### Updating to a newer LLVM release
 

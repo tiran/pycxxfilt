@@ -46,6 +46,7 @@ def test_llvm_demangle_cases() -> None:
                 failures.append(
                     f"  {mangled}\n    expected: {expected!r}\n    got:      {result!r}"
                 )
+    assert total > 1000, f"Itanium corpus not loaded (got {total} cases)"
     if xfails:
         print(f"xfail: {len(xfails)} known output differences")
     if failures:
@@ -83,7 +84,7 @@ class TestDemangleAPI:
         assert pycxxfilt.demangle("") is None
 
     def test_invalid_mangled_raises_valueerror(self) -> None:
-        with pytest.raises(ValueError, match="invalid mangled name"):
+        with pytest.raises(ValueError, match="invalid Itanium mangled name"):
             pycxxfilt.demangle("_Zinvalid")
 
     def test_type_error_on_non_string(self) -> None:
@@ -97,3 +98,31 @@ class TestDemangleAPI:
     def test_type_error_on_none(self) -> None:
         with pytest.raises(TypeError):
             pycxxfilt.demangle(None)  # type: ignore[arg-type]
+
+
+class TestAutoDispatch:
+    """demangle() routes to the right engine by prefix."""
+
+    def test_itanium(self) -> None:
+        assert pycxxfilt.demangle("_Z3fooi") == "foo(int)"
+
+    def test_microsoft(self) -> None:
+        assert (
+            pycxxfilt.demangle("?foo@Tensor@at@@QEAAXXZ")
+            == "public: void __cdecl at::Tensor::foo(void)"
+        )
+
+    def test_rust(self) -> None:
+        assert pycxxfilt.demangle("_RNvC6_123foo3bar") == "123foo::bar"
+
+    def test_microsoft_invalid_raises(self) -> None:
+        with pytest.raises(ValueError, match="invalid MSVC mangled name"):
+            pycxxfilt.demangle("?bad")
+
+    def test_rust_invalid_raises(self) -> None:
+        with pytest.raises(ValueError, match="invalid Rust mangled name"):
+            pycxxfilt.demangle("_Rbad")
+
+    def test_rust_prefix_beats_itanium(self) -> None:
+        # "_R" dispatches to Rust, never Itanium.
+        assert pycxxfilt.demangle("_RNvC1a4main") == "a::main"

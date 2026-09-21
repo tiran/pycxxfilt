@@ -5,13 +5,13 @@ build-backend = "mesonpy"
 [project]
 name = "pycxxfilt"
 dynamic = ["version"]
-description = "Demangle C++ symbols using LLVM's C++ ABI demangler"
+description = "Demangle C++ (Itanium & MSVC) and Rust symbols using LLVM's demanglers"
 requires-python = ">=3.11"
 authors = [{name = "Christian Heimes", email = "christian@python.org"}]
 license = "Apache-2.0 AND Apache-2.0 WITH LLVM-exception"
 license-files = ["LICENSE*"]
 readme = "README.md"
-keywords = ["demangle", "C++", "LLVM"]
+keywords = ["demangle", "C++", "MSVC", "Rust", "LLVM"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",

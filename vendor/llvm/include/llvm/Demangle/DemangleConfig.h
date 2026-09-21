@@ -1,40 +1,22 @@
-//===--- DemangleConfig.h --------------------------------------*- C++ -*-===//
+//===--- DemangleConfig.h ---------------------------------------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
-// This file is contains a subset of macros copied from
-// llvm/include/llvm/Demangle/DemangleConfig.h
+//===----------------------------------------------------------------------===//
+//
+// This file contains a variety of feature test macros copied from
+// include/llvm/Support/Compiler.h so that LLVMDemangle does not need to take
+// a dependency on LLVMSupport.
+//
 //===----------------------------------------------------------------------===//
 
-#ifndef LIBCXXABI_DEMANGLE_DEMANGLE_CONFIG_H
-#define LIBCXXABI_DEMANGLE_DEMANGLE_CONFIG_H
+#ifndef LLVM_DEMANGLE_DEMANGLECONFIG_H
+#define LLVM_DEMANGLE_DEMANGLECONFIG_H
 
-// Must be defined before pulling in headers from libc++. Allow downstream
-// build systems to override this value.
-// https://libcxx.llvm.org/UsingLibcxx.html#enabling-the-safe-libc-mode
-#ifndef _LIBCPP_VERBOSE_ABORT
-#define _LIBCPP_VERBOSE_ABORT(...) __abort_message(__VA_ARGS__)
-#include "../abort_message.h"
-#endif
-
-#ifndef _LIBCPP_LOG_HARDENING_FAILURE
-// Libc++abi does not have any functionality to log and continue, so we drop
-// error messages when we build the demangler with `observe` assertion semantic.
-// Once the layering with libc++ is improved, this could use the libc++
-// functionality to log hardening failures.
-#define _LIBCPP_LOG_HARDENING_FAILURE(message) ((void)0)
-#endif
-
-#include <version>
-
-#ifdef _MSC_VER
-// snprintf is implemented in VS 2015
-#if _MSC_VER < 1900
-#define snprintf _snprintf_s
-#endif
-#endif
+// llvm-config.h is required for LLVM_ENABLE_LLVM_EXPORT_ANNOTATIONS
+#include "llvm/Config/llvm-config.h"
 
 #ifndef __has_feature
 #define __has_feature(x) 0
@@ -112,11 +94,32 @@
 #define DEMANGLE_ASSERT(__expr, __msg) assert((__expr) && (__msg))
 #endif
 
-#define DEMANGLE_NAMESPACE_BEGIN namespace { namespace itanium_demangle {
+#define DEMANGLE_NAMESPACE_BEGIN namespace llvm { namespace itanium_demangle {
 #define DEMANGLE_NAMESPACE_END } }
 
-// The DEMANGLE_ABI macro resolves to nothing when building libc++abi. Only
-// the llvm copy defines DEMANGLE_ABI as a visibility attribute.
-#define DEMANGLE_ABI
+/// DEMANGLE_ABI is the export/visibility macro used to mark symbols declared in
+/// llvm/Demangle as exported when built as a shared library.
+// clang-format off
+// Autoformatting removes indentation, making this harder to read.
+#if !defined(DEMANGLE_ABI)
+# if defined(LLVM_BUILD_STATIC) || !defined(LLVM_ENABLE_LLVM_EXPORT_ANNOTATIONS)
+#  define DEMANGLE_ABI
+# else
+#  if defined(_WIN32) && !defined(__MINGW32__)
+#   if defined(LLVM_EXPORTS)
+#    define DEMANGLE_ABI __declspec(dllexport)
+#   else
+#    define DEMANGLE_ABI __declspec(dllimport)
+#   endif
+#  else
+#   if __has_attribute(visibility)
+#    define DEMANGLE_ABI __attribute__((__visibility__("default")))
+#   else
+#    define DEMANGLE_ABI
+#   endif
+#  endif
+# endif
+#endif
+// clang-format on
 
-#endif // LIBCXXABI_DEMANGLE_DEMANGLE_CONFIG_H
+#endif
