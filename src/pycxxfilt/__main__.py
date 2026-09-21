@@ -17,7 +17,12 @@ def main(args: list[str] | None = None) -> int:
         return 2
 
     for mangled in args:
-        result = demangle(mangled)
+        # Like c++filt, echo anything that does not demangle (None or a
+        # prefix that signals intent but fails, raising ValueError).
+        try:
+            result = demangle(mangled)
+        except ValueError:
+            result = None
         print(result if result is not None else mangled)
 
     return 0

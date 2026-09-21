@@ -1,4 +1,4 @@
-//===----------------------------------------------------------------------===//
+//===------------------------- ItaniumDemangle.cpp ------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -10,23 +10,20 @@
 // file does not yet support:
 //   - C++ modules TS
 
-#include "abort_message.h"
-#define DEMANGLE_ASSERT(expr, msg) _LIBCXXABI_ASSERT(expr, msg)
+#include "llvm/Demangle/Demangle.h"
+#include "llvm/Demangle/ItaniumDemangle.h"
 
-#include "demangle/DemangleConfig.h"
-#include "demangle/ItaniumDemangle.h"
-#include "__cxxabi_config.h"
+#include <cassert>
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <exception>
 #include <functional>
-#include <numeric>
-#include <string_view>
 #include <utility>
 
-using namespace itanium_demangle;
+using namespace llvm;
+using namespace llvm::itanium_demangle;
 
 // <discriminator> := _ <non-negative number>      # when number < 10
 //                 := __ <non-negative number> _   # when number >= 10
@@ -79,7 +76,7 @@ struct DumpVisitor {
 
   void printStr(const char *S) { fprintf(stderr, "%s", S); }
   void print(std::string_view SV) {
-    fprintf(stderr, "\"%.*s\"", (int)SV.size(), &*SV.begin());
+    fprintf(stderr, "\"%.*s\"", (int)SV.size(), SV.data());
   }
   void print(const Node *N) {
     if (N)
@@ -105,13 +102,11 @@ struct DumpVisitor {
   // Overload used when T is exactly 'bool', not merely convertible to 'bool'.
   void print(bool B) { printStr(B ? "true" : "false"); }
 
-  template <class T>
-  typename std::enable_if<std::is_unsigned<T>::value>::type print(T N) {
+  template <class T> std::enable_if_t<std::is_unsigned<T>::value> print(T N) {
     fprintf(stderr, "%llu", (unsigned long long)N);
   }
 
-  template <class T>
-  typename std::enable_if<std::is_signed<T>::value>::type print(T N) {
+  template <class T> std::enable_if_t<std::is_signed<T>::value> print(T N) {
     fprintf(stderr, "%lld", (long long)N);
   }
 
@@ -362,47 +357,248 @@ public:
 }  // unnamed namespace
 
 //===----------------------------------------------------------------------===//
-// Code beyond this point should not be synchronized with LLVM.
+// Code beyond this point should not be synchronized with libc++abi.
 //===----------------------------------------------------------------------===//
 
 using Demangler = itanium_demangle::ManglingParser<DefaultAllocator>;
 
-namespace {
-enum : int {
-  demangle_invalid_args = -3,
-  demangle_invalid_mangled_name = -2,
-  demangle_memory_alloc_failure = -1,
-  demangle_success = 0,
-};
-}
-
-namespace __cxxabiv1 {
-extern "C" _LIBCXXABI_FUNC_VIS char *
-__cxa_demangle(const char *MangledName, char *Buf, size_t *N, int *Status) {
-  if (MangledName == nullptr || (Buf != nullptr && N == nullptr)) {
-    if (Status)
-      *Status = demangle_invalid_args;
+char *llvm::itaniumDemangle(std::string_view MangledName, bool ParseParams) {
+  if (MangledName.empty())
     return nullptr;
-  }
 
-  int InternalStatus = demangle_success;
-  Demangler Parser(MangledName, MangledName + std::strlen(MangledName));
-  Node *AST = Parser.parse();
+  Demangler Parser(MangledName.data(),
+                   MangledName.data() + MangledName.length());
+  Node *AST = Parser.parse(ParseParams);
+  if (!AST)
+    return nullptr;
 
-  if (AST == nullptr)
-    InternalStatus = demangle_invalid_mangled_name;
-  else {
-    OutputBuffer O(Buf, N);
-    DEMANGLE_ASSERT(Parser.ForwardTemplateRefs.empty(), "");
-    AST->print(O);
-    O += '\0';
-    if (N != nullptr)
-      *N = O.getCurrentPosition();
-    Buf = O.getBuffer();
-  }
-
-  if (Status)
-    *Status = InternalStatus;
-  return InternalStatus == demangle_success ? Buf : nullptr;
+  OutputBuffer OB;
+  assert(Parser.ForwardTemplateRefs.empty());
+  AST->print(OB);
+  OB += '\0';
+  return OB.getBuffer();
 }
-}  // __cxxabiv1
+
+ItaniumPartialDemangler::ItaniumPartialDemangler()
+    : RootNode(nullptr), Context(new Demangler{nullptr, nullptr}) {}
+
+ItaniumPartialDemangler::~ItaniumPartialDemangler() {
+  delete static_cast<Demangler *>(Context);
+}
+
+ItaniumPartialDemangler::ItaniumPartialDemangler(
+    ItaniumPartialDemangler &&Other)
+    : RootNode(Other.RootNode), Context(Other.Context) {
+  Other.Context = Other.RootNode = nullptr;
+}
+
+ItaniumPartialDemangler &ItaniumPartialDemangler::
+operator=(ItaniumPartialDemangler &&Other) {
+  std::swap(RootNode, Other.RootNode);
+  std::swap(Context, Other.Context);
+  return *this;
+}
+
+// Demangle MangledName into an AST, storing it into this->RootNode.
+bool ItaniumPartialDemangler::partialDemangle(const char *MangledName) {
+  Demangler *Parser = static_cast<Demangler *>(Context);
+  size_t Len = std::strlen(MangledName);
+  Parser->reset(MangledName, MangledName + Len);
+  RootNode = Parser->parse();
+  return RootNode == nullptr;
+}
+static char *printNode(const Node *RootNode, OutputBuffer &OB, size_t *N) {
+  RootNode->print(OB);
+  OB += '\0';
+  if (N != nullptr)
+    *N = OB.getCurrentPosition();
+  return OB.getBuffer();
+}
+
+static char *printNode(const Node *RootNode, char *Buf, size_t *N) {
+  OutputBuffer OB(Buf, N);
+  return printNode(RootNode, OB, N);
+}
+
+char *ItaniumPartialDemangler::getFunctionBaseName(char *Buf, size_t *N) const {
+  if (!isFunction())
+    return nullptr;
+
+  const Node *Name = static_cast<const FunctionEncoding *>(RootNode)->getName();
+
+  while (true) {
+    switch (Name->getKind()) {
+    case Node::KAbiTagAttr:
+      Name = static_cast<const AbiTagAttr *>(Name)->Base;
+      continue;
+    case Node::KModuleEntity:
+      Name = static_cast<const ModuleEntity *>(Name)->Name;
+      continue;
+    case Node::KNestedName:
+      Name = static_cast<const NestedName *>(Name)->Name;
+      continue;
+    case Node::KLocalName:
+      Name = static_cast<const LocalName *>(Name)->Entity;
+      continue;
+    case Node::KNameWithTemplateArgs:
+      Name = static_cast<const NameWithTemplateArgs *>(Name)->Name;
+      continue;
+    default:
+      return printNode(Name, Buf, N);
+    }
+  }
+}
+
+char *ItaniumPartialDemangler::getFunctionDeclContextName(char *Buf,
+                                                          size_t *N) const {
+  if (!isFunction())
+    return nullptr;
+  const Node *Name = static_cast<const FunctionEncoding *>(RootNode)->getName();
+
+  OutputBuffer OB(Buf, N);
+
+ KeepGoingLocalFunction:
+  while (true) {
+    if (Name->getKind() == Node::KAbiTagAttr) {
+      Name = static_cast<const AbiTagAttr *>(Name)->Base;
+      continue;
+    }
+    if (Name->getKind() == Node::KNameWithTemplateArgs) {
+      Name = static_cast<const NameWithTemplateArgs *>(Name)->Name;
+      continue;
+    }
+    break;
+  }
+
+  if (Name->getKind() == Node::KModuleEntity)
+    Name = static_cast<const ModuleEntity *>(Name)->Name;
+
+  switch (Name->getKind()) {
+  case Node::KNestedName:
+    static_cast<const NestedName *>(Name)->Qual->print(OB);
+    break;
+  case Node::KLocalName: {
+    auto *LN = static_cast<const LocalName *>(Name);
+    LN->Encoding->print(OB);
+    OB += "::";
+    Name = LN->Entity;
+    goto KeepGoingLocalFunction;
+  }
+  default:
+    break;
+  }
+  OB += '\0';
+  if (N != nullptr)
+    *N = OB.getCurrentPosition();
+  return OB.getBuffer();
+}
+
+char *ItaniumPartialDemangler::getFunctionName(char *Buf, size_t *N) const {
+  if (!isFunction())
+    return nullptr;
+  auto *Name = static_cast<FunctionEncoding *>(RootNode)->getName();
+  return printNode(Name, Buf, N);
+}
+
+char *ItaniumPartialDemangler::getFunctionParameters(char *Buf,
+                                                     size_t *N) const {
+  if (!isFunction())
+    return nullptr;
+  NodeArray Params = static_cast<FunctionEncoding *>(RootNode)->getParams();
+
+  OutputBuffer OB(Buf, N);
+
+  OB += '(';
+  Params.printWithComma(OB);
+  OB += ')';
+  OB += '\0';
+  if (N != nullptr)
+    *N = OB.getCurrentPosition();
+  return OB.getBuffer();
+}
+
+char *ItaniumPartialDemangler::getFunctionReturnType(
+    char *Buf, size_t *N) const {
+  if (!isFunction())
+    return nullptr;
+
+  OutputBuffer OB(Buf, N);
+
+  if (const Node *Ret =
+          static_cast<const FunctionEncoding *>(RootNode)->getReturnType())
+    Ret->print(OB);
+
+  OB += '\0';
+  if (N != nullptr)
+    *N = OB.getCurrentPosition();
+  return OB.getBuffer();
+}
+
+char *ItaniumPartialDemangler::finishDemangle(char *Buf, size_t *N) const {
+  assert(RootNode != nullptr && "must call partialDemangle()");
+  return printNode(static_cast<Node *>(RootNode), Buf, N);
+}
+
+char *ItaniumPartialDemangler::finishDemangle(void *OB) const {
+  assert(RootNode != nullptr && "must call partialDemangle()");
+  assert(OB != nullptr && "valid OutputBuffer argument required");
+  return printNode(static_cast<Node *>(RootNode),
+                   *static_cast<OutputBuffer *>(OB),
+                   /*N=*/nullptr);
+}
+
+bool ItaniumPartialDemangler::hasFunctionQualifiers() const {
+  assert(RootNode != nullptr && "must call partialDemangle()");
+  if (!isFunction())
+    return false;
+  auto *E = static_cast<const FunctionEncoding *>(RootNode);
+  return E->getCVQuals() != QualNone || E->getRefQual() != FrefQualNone;
+}
+
+bool ItaniumPartialDemangler::isCtorOrDtor() const {
+  const Node *N = static_cast<const Node *>(RootNode);
+  while (N) {
+    switch (N->getKind()) {
+    default:
+      return false;
+    case Node::KCtorDtorName:
+      return true;
+
+    case Node::KAbiTagAttr:
+      N = static_cast<const AbiTagAttr *>(N)->Base;
+      break;
+    case Node::KFunctionEncoding:
+      N = static_cast<const FunctionEncoding *>(N)->getName();
+      break;
+    case Node::KLocalName:
+      N = static_cast<const LocalName *>(N)->Entity;
+      break;
+    case Node::KNameWithTemplateArgs:
+      N = static_cast<const NameWithTemplateArgs *>(N)->Name;
+      break;
+    case Node::KNestedName:
+      N = static_cast<const NestedName *>(N)->Name;
+      break;
+    case Node::KModuleEntity:
+      N = static_cast<const ModuleEntity *>(N)->Name;
+      break;
+    }
+  }
+  return false;
+}
+
+bool ItaniumPartialDemangler::isFunction() const {
+  assert(RootNode != nullptr && "must call partialDemangle()");
+  return static_cast<const Node *>(RootNode)->getKind() ==
+         Node::KFunctionEncoding;
+}
+
+bool ItaniumPartialDemangler::isSpecialName() const {
+  assert(RootNode != nullptr && "must call partialDemangle()");
+  auto K = static_cast<const Node *>(RootNode)->getKind();
+  return K == Node::KSpecialName || K == Node::KCtorVtableSpecialName;
+}
+
+bool ItaniumPartialDemangler::isData() const {
+  return !isFunction() && !isSpecialName();
+}

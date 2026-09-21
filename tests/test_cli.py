@@ -49,6 +49,23 @@ class TestMain:
         out = capsys.readouterr().out
         assert out == "foo(int)\nplain\nA::B()\n"
 
+    def test_microsoft_symbol(self, capsys: pytest.CaptureFixture[str]) -> None:
+        rc = main(["?foo@Tensor@at@@QEAAXXZ"])
+        assert rc == 0
+        assert capsys.readouterr().out == (
+            "public: void __cdecl at::Tensor::foo(void)\n"
+        )
+
+    def test_rust_symbol(self, capsys: pytest.CaptureFixture[str]) -> None:
+        rc = main(["_RNvC6_123foo3bar"])
+        assert rc == 0
+        assert capsys.readouterr().out == "123foo::bar\n"
+
+    def test_mixed_flavors(self, capsys: pytest.CaptureFixture[str]) -> None:
+        rc = main(["_Z3fooi", "?x@@3HA", "_RNvC1a4main"])
+        assert rc == 0
+        assert capsys.readouterr().out == "foo(int)\nint x\na::main\n"
+
     def test_no_args_returns_2(self, capsys: pytest.CaptureFixture[str]) -> None:
         rc = main([])
         assert rc == 2
