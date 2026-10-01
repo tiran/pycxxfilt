@@ -17,6 +17,8 @@ Example::
     'foo(int)'
     >>> pycxxfilt.demangle("?foo@Tensor@at@@QEAAXXZ")
     'public: void __cdecl at::Tensor::foo(void)'
+    >>> pycxxfilt.demangle("_Z3fooi@@GLIBCXX_3.4")
+    'foo(int)@@GLIBCXX_3.4'
     >>> pycxxfilt.demangle("not_mangled") is None
     True
     >>> pycxxfilt.demangle("_Zinvalid")
@@ -49,6 +51,9 @@ def demangle(mangled_name: str, /) -> str | None:
     if the input is not a valid mangled name.  Raises TypeError for non-str
     input and ValueError when the input carries a flavor's prefix but fails to
     demangle, or contains an embedded NUL byte.
+
+    On the Itanium path a trailing GNU symbol version (``name@VER`` or
+    ``name@@VER``) is split off and re-appended verbatim.
     """
     if not isinstance(mangled_name, str):
         raise TypeError("demangle() argument must be a string")
@@ -56,4 +61,9 @@ def demangle(mangled_name: str, /) -> str | None:
         return msvc_demangle(mangled_name)
     if mangled_name.startswith("_R"):
         return rust_demangle(mangled_name)
-    return itanium_demangle(mangled_name)
+    # Strip a GNU symbol version suffix; "@" never occurs in Itanium names.
+    name, sep, version = mangled_name.partition("@")
+    demangled = itanium_demangle(name)
+    if demangled is None or not sep:
+        return demangled
+    return f"{demangled}{sep}{version}"
