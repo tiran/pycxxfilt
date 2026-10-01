@@ -45,12 +45,9 @@ def platform_family(platform: str) -> str:
 # Wheel ABI suffixes ({python-tag}-{abi-tag}) that MUST be built for every
 # platform. Every built wheel must match one of these exactly.
 MUST_BUILD = [
-    "cp311-abi3",    # stable ABI: one wheel covers every GIL build 3.11+
-    "cp314-cp314t",  # free-threaded 3.14 (no stable ABI for FT before 3.15)
-    # PEP 803 abi3.abi3t: single wheel for 3.15+ GIL *and* free-threaded.
-    # Uncomment once meson-python ships abi3t support and "cp315t-*" is added
-    # to [tool.cibuildwheel] build in pyproject.toml.
-    # "cp315-abi3.abi3t",
+    "cp311-abi3",       # stable ABI: one wheel covers every GIL build 3.11+
+    "cp314-cp314t",     # free-threaded 3.14 (no stable ABI for FT before 3.15)
+    "cp315-abi3.abi3t",  # PEP 803: one wheel for 3.15+ GIL *and* free-threaded
 ]
 
 

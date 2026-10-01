@@ -22,13 +22,18 @@ llvm_demangle = static_library('llvm_demangle',
     install: false,
 )
 
+# On a free-threaded interpreter the limited API yields abi3t (PEP 803), which
+# requires limited_api >= 3.15; GIL builds keep 3.11 for the broadest abi3 wheel.
+is_freethreaded = py.get_variable('Py_GIL_DISABLED', 0) == 1
+limited_api_version = is_freethreaded ? '3.15' : '3.11'
+
 _cxxfilt = py.extension_module('_cxxfilt',
     sources: ['_cxxfilt.c'],
     c_args: ['-DPYCXXFILT_LLVM_VERSION="' + llvm_version + '"'],
     link_with: llvm_demangle,
     gnu_symbol_visibility: 'hidden',
     link_language: 'cpp',
-    limited_api: '3.11',
+    limited_api: limited_api_version,
     install: true,
     subdir: 'pycxxfilt',
 )
