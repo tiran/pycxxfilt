@@ -187,20 +187,24 @@ module_exec(PyObject *module)
 
 #ifdef Py_TARGET_ABI3T
 // PEP 803 abi3t (free-threaded stable ABI, 3.15+): PyObject is opaque, so
-// export the module from slots via the PEP 793 PyModExport hook instead of a
-// statically allocated PyModuleDef.
+// export the module from a PEP 793 PySlot array via the PyModExport hook
+// instead of a statically allocated PyModuleDef.
+PyABIInfo_VAR(abi_info);
+
 // clang-format off
-static PyModuleDef_Slot
+static PySlot
 module_slots[] = {
-    {Py_mod_name, (void *)"_cxxfilt"},
-    {Py_mod_doc, (void *)MODULE_DOC},
-    {Py_mod_methods, (void *)module_methods},
-    {Py_mod_exec, (void *)module_exec},
-    {Py_mod_gil, Py_MOD_GIL_NOT_USED},
-    {0, NULL}
+    PySlot_STATIC_DATA(Py_mod_abi, &abi_info),
+    PySlot_STATIC_DATA(Py_mod_name, "_cxxfilt"),
+    PySlot_STATIC_DATA(Py_mod_doc, MODULE_DOC),
+    PySlot_STATIC_DATA(Py_mod_methods, module_methods),
+    PySlot_FUNC(Py_mod_exec, module_exec),
+    PySlot_DATA(Py_mod_gil, Py_MOD_GIL_NOT_USED),
+    PySlot_END
 };
 // clang-format on
 
+// The hook only returns the static array, so no PyABIInfo_Check is needed.
 PyMODEXPORT_FUNC
 PyModExport__cxxfilt(void)
 {

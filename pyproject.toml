@@ -1,5 +1,5 @@
 [build-system]
-requires = ["meson-python>=0.17", "meson>=1.6", "vcs-versioning>=2.3.2"]
+requires = ["meson-python>=0.21", "meson>=1.6", "vcs-versioning>=2.3.2"]
 build-backend = "mesonpy"
 
 [project]
@@ -53,19 +53,23 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "ANN"]
 #   cp311-*  -> one abi3 wheel, covers every GIL build 3.11+.
 #   cp314t-* -> version-specific free-threaded wheel; the free-threaded build
 #               has no stable ABI before 3.15, so it cannot be abi3.
-# TODO(abi3t): add "cp315t-*" for a cp315-abi3.abi3t wheel once meson-python
-# ships PEP 803 support (see _cxxfilt.c).
-build = ["cp311-*", "cp314t-*"]
+#   cp315t-* -> one cp315-abi3.abi3t wheel (PEP 803), covers every GIL and
+#               free-threaded build 3.15+.
+build = ["cp311-*", "cp314t-*", "cp315t-*"]
 test-requires = "pytest"
 test-command = "python -m pytest {project}/tests/ -q --ignore={project}/tests/test_demangle.py"
 
 [[tool.cibuildwheel.overrides]]
-# The build defaults to version-specific extensions (see meson.build). Opt the
-# shipped stable-ABI wheel back in: cp311 builds on Python 3.11, which still has
-# the plain ".abi3.so" suffix, so it produces the cp311-abi3 wheel. cp314t (and
-# any other build) stays version-specific and needs no override.
-select = "cp311-*"
+# Opt into the limited API (default off in meson.build): cp311 -> abi3, cp315t -> abi3t
+# (meson.build bumps limited_api to 3.15). cp314t has no stable ABI, so no override.
+select = "cp311-* cp315t-*"
 config-settings = { setup-args = "-Dpython.allow_limited_api=true" }
+
+[[tool.cibuildwheel.overrides]]
+# abi3audit fails on the PEP 793 PyModExport_ export; skip it for the abi3t wheel until
+# abi3audit#215 is fixed. cp311-abi3 keeps the audit.
+select = "cp315t-*"
+audit-command = ""
 
 [tool.cibuildwheel.linux]
 archs = ["x86_64", "aarch64", "ppc64le", "s390x"]
