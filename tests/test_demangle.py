@@ -126,3 +126,42 @@ class TestAutoDispatch:
     def test_rust_prefix_beats_itanium(self) -> None:
         # "_R" dispatches to Rust, never Itanium.
         assert pycxxfilt.demangle("_RNvC1a4main") == "a::main"
+
+
+class TestItaniumSymbolVersion:
+    """GNU symbol versions (name@VER / name@@VER) on the Itanium path."""
+
+    @pytest.mark.parametrize(
+        ("mangled", "expected"),
+        [
+            ("_Z3fooi@@GLIBCXX_3.4", "foo(int)@@GLIBCXX_3.4"),
+            ("_Z3fooi@GLIBCXX_3.4", "foo(int)@GLIBCXX_3.4"),
+            (
+                "_ZNKSs11_M_disjunctEPKc@@GLIBCXX_3.4.5",
+                "std::string::_M_disjunct(char const*) const@@GLIBCXX_3.4.5",
+            ),
+            # "@" is structural in MSVC names; it must not be split off.
+            (
+                "?foo@Tensor@at@@QEAAXXZ",
+                "public: void __cdecl at::Tensor::foo(void)",
+            ),
+        ],
+    )
+    def test_versioned(self, mangled: str, expected: str) -> None:
+        assert pycxxfilt.demangle(mangled) == expected
+
+    def test_invalid_mangled_with_version_raises(self) -> None:
+        with pytest.raises(ValueError, match="invalid Itanium mangled name"):
+            pycxxfilt.demangle("_Zinvalid@@VER")
+
+    def test_non_mangled_with_version_returns_none(self) -> None:
+        assert pycxxfilt.demangle("plain@thing") is None
+
+    @pytest.mark.parametrize(
+        "mangled",
+        ["_Z3fooi@@GLIBCXX_3.4", "_Z3fooi@GLIBCXX_3.4"],
+    )
+    def test_primitive_rejects_version(self, mangled: str) -> None:
+        # Version stripping lives in demangle(); itanium_demangle() is strict.
+        with pytest.raises(ValueError, match="invalid Itanium mangled name"):
+            pycxxfilt.itanium_demangle(mangled)

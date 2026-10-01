@@ -47,6 +47,18 @@ otherwise Itanium) and returns the demangled name, or `None` if the input is
 not a valid mangled symbol. To force a specific engine, call
 `itanium_demangle()`, `msvc_demangle()`, or `rust_demangle()` directly.
 
+Since 1.2.0, `demangle()` accepts an Itanium symbol carrying a trailing GNU
+symbol version (`name@VERSION` or the default `name@@VERSION`, as emitted by
+`nm`/`readelf`); the version is split off and re-appended to the result:
+
+```python
+pycxxfilt.demangle("_Z3fooi@@GLIBCXX_3.4")       # 'foo(int)@@GLIBCXX_3.4'
+```
+
+This only applies to the auto-detecting `demangle()`. The flavor-specific
+`itanium_demangle()` stays strict and rejects a `@` suffix, and the suffix is
+never stripped on the MSVC path, where `@` is a structural separator.
+
 All functions raise `TypeError` for non-string input and `ValueError` when the
 input carries a flavor's prefix but fails to demangle. Because the demanglers
 are NUL-terminated C APIs, a string containing an embedded NUL byte (`\0`) is
